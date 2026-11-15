@@ -235,6 +235,13 @@ class AgentSupervisor:
                     evidence=evidence
                 )
                 conversation.active_case_id = active_case.id
+            else:
+                c_stmt = select(SupportCase).filter(
+                    SupportCase.merchant_id == merchant_id,
+                    SupportCase.category == "SETTLEMENT_MISMATCH"
+                ).order_by(SupportCase.created_at.desc())
+                c_res = await db.execute(c_stmt)
+                active_case = c_res.scalars().first()
 
             assistant_reply = await gemini_client.generate_merchant_reply(
                 user_message=user_message,

@@ -159,6 +159,7 @@ Only return raw JSON.
                 merchant_name = context.get("merchant_name", "Sharma Sweets & Chaat")
                 telemetry = context.get("device_telemetry", {})
                 recon = context.get("reconciliation", {})
+                discrepancy_val = float(context.get("discrepancy", 0))
                 target_lang = "Marathi" if is_marathi else "Hindi" if is_hindi else "Indian English"
 
                 system_prompt = f"""
@@ -169,13 +170,14 @@ Language to speak: {target_lang}.
 Live Verified Context:
 - Intent: {intent}
 - Soundbox 4G Telemetry: Device #SBOX-4G-9921, Battery 78%, SIM: Jio 4G LTE (Signal 2/4 bars, indoor attenuation), Speaker: Functional (85% vol), Last Audio: Order ORD-8820 (₹4,000) at 10:14 AM.
-- Today's Transactions: Total ₹15,000 across 3 orders (ORD-8819: ₹5,000 settled, ORD-8820: ₹4,000 settled, ORD-8821: ₹6,000 captured but held for settlement release).
-- Bank Settlement: Batch #9941 settled ₹9,000 to HDFC Bank A/C ****4819. Discrepancy: ₹6,000.
+- Today's Transactions: Total ₹15,000 across 3 orders (ORD-8819: ₹5,000, ORD-8820: ₹4,000, ORD-8821: ₹6,000).
+- Live Settlement Reconciliation: {"ALL ₹15,000 CREDITED. Discrepancy: ₹0.00 (Balanced / Resolved)" if discrepancy_val == 0 else f"Discrepancy: ₹{discrepancy_val} (ORD-8821 pending release)"}.
+- Bank Account: HDFC Bank A/C ****4819.
 - Paytm Rules: 0% MDR on UPI. Daily auto-settlement at 07:00 AM. Soundbox rental ₹125/mo.
 
 Instructions:
 1. Answer the merchant's exact question accurately and directly in natural, polite {target_lang}.
-2. Do not use generic boilerplate; reference the actual device telemetry or transaction details as appropriate.
+2. If discrepancy is ₹0.00, confirm joyfully to the merchant that their payment/settlement issue is fully resolved and ₹0 discrepancy remains.
 3. Keep response concise (under 75 words) so it sounds crisp when spoken over Sarvam AI voice.
 """
                 resp = self.model.generate_content(f"{system_prompt}\n\nMerchant: {user_message}")
@@ -284,24 +286,46 @@ Instructions:
         # D2) SETTLEMENT MISMATCH INQUIRIES
         elif intent == "SETTLEMENT_MISMATCH":
             case_no = context.get("case_number", "OPS-2026-0001")
-            if is_marathi:
-                return (
-                    f"नमस्कार शर्मा जी! मी आपल्या खात्याची तपासणी केली आहे. आज एकूण ₹15,000 चे 3 पेमेंट्स मिळाले, परंतु बॅचमध्ये फक्त ₹9,000 जमा झाले. "
-                    f"ऑर्डर #ORD-8821 चे ₹6,000 सेटलमेंटमध्ये आले नाहीत (तफावत: ₹6,000). "
-                    f"मी केस **{case_no}** दाखल केली आहे. सुपरवायझरच्या मंजुरीनंतर ही रक्कम थेट आपल्या बँक खात्यात पाठवली जाईल."
-                )
-            elif is_hindi:
-                return (
-                    f"नमस्ते शर्मा जी! मैंने आपके खाते की जांच की है। आज कुल ₹15,000 के 3 पेमेंट्स मिले, लेकिन बैंक बैच में केवल ₹9,000 सेटल हुए। "
-                    f"ऑर्डर #ORD-8821 के ₹6,000 छूट गए हैं (कमी: ₹6,000)। "
-                    f"मैंने सपोर्ट केस **{case_no}** दर्ज कर दिया है। सुपरवाइजर की मंजूरी मिलते ही यह राशि सीधे आपके बैंक खाते में भेज दी जाएगी।"
-                )
+            discrepancy = float(context.get("discrepancy", 0))
+
+            if discrepancy == 0:
+                if is_marathi:
+                    return (
+                        f"आनंदाची बातमी शर्मा जी! मी आपल्या खात्याची लाईव्ह तपासणी केली आहे: आपली समस्या पूर्णपणे सुटलेली आहे! "
+                        f"ऑर्डर #ORD-8821 च्या ₹6,000 सह आजचे सर्व ₹15,000 चे 3 पेमेंट्स आपल्या बँक खात्यात जमा झाले आहेत. "
+                        f"केस **{case_no}** यशस्वीरीत्या सोडवली गेली आहे. खात्यात कोणतीही तफावत शिल्लक नाही (तफावत: ₹0.00)!"
+                    )
+                elif is_hindi:
+                    return (
+                        f"बहुत अच्छी खबर शर्मा जी! मैंने आपके खाते की लाइव जांच की है: आपकी समस्या पूरी तरह हल हो चुकी है! "
+                        f"ऑर्डर #ORD-8821 के ₹6,000 सहित आज के सभी ₹15,000 के 3 पेमेंट्स आपके बैंक खाते में जमा हो चुके हैं। "
+                        f"केस **{case_no}** सफलतापूर्वक सुलझा लिया गया है। आपके खाते में ₹0.00 की कोई कमी नहीं है, खाता 100% संतुलित है!"
+                    )
+                else:
+                    return (
+                        f"Great news Sharma Ji! I checked your live merchant ledger: your issue has been fully resolved! "
+                        f"All 3 UPI payments totaling ₹15,000.00 (including Order #ORD-8821 for ₹6,000.00) have been successfully settled into your bank account. "
+                        f"Case **{case_no}** is verified and closed. Your ledger is 100% balanced with ₹0.00 discrepancy!"
+                    )
             else:
-                return (
-                    f"Hello Sharma Ji! I investigated your merchant ledger. Today you captured 3 UPI payments totaling ₹15,000.00, "
-                    f"but settled batch #9941 only paid out ₹9,000.00. Order #ORD-8821 for ₹6,000.00 is missing (Discrepancy: ₹6,000.00). "
-                    f"I have opened Case **{case_no}**. Once approved by the supervisor, ₹6,000 will be credited directly to your bank account."
-                )
+                if is_marathi:
+                    return (
+                        f"नमस्कार शर्मा जी! मी आपल्या खात्याची तपासणी केली आहे. आज एकूण ₹15,000 चे 3 पेमेंट्स मिळाले, परंतु बॅचमध्ये फक्त ₹9,000 जमा झाले. "
+                        f"ऑर्डर #ORD-8821 चे ₹6,000 सेटलमेंटमध्ये आले नाहीत (तफावत: ₹6,000). "
+                        f"मी केस **{case_no}** दाखल केली आहे. सुपरवायझरच्या मंजुरीनंतर ही रक्कम थेट आपल्या बँक खात्यात पाठवली जाईल."
+                    )
+                elif is_hindi:
+                    return (
+                        f"नमस्ते शर्मा जी! मैंने आपके खाते की जांच की है। आज कुल ₹15,000 के 3 पेमेंट्स मिले, लेकिन बैंक बैच में केवल ₹9,000 सेटल हुए। "
+                        f"ऑर्डर #ORD-8821 के ₹6,000 छूट गए हैं (कमी: ₹6,000)। "
+                        f"मैंने सपोर्ट केस **{case_no}** दर्ज कर दिया है। सुपरवाइजर की मंजूरी मिलते ही यह राशि सीधे आपके बैंक खाते में भेज दी जाएगी।"
+                    )
+                else:
+                    return (
+                        f"Hello Sharma Ji! I investigated your merchant ledger. Today you captured 3 UPI payments totaling ₹15,000.00, "
+                        f"but settled batch #9941 only paid out ₹9,000.00. Order #ORD-8821 for ₹6,000.00 is missing (Discrepancy: ₹6,000.00). "
+                        f"I have opened Case **{case_no}**. Once approved by the supervisor, ₹6,000 will be credited directly to your bank account."
+                    )
 
         # E) GENERAL MERCHANT OPERATIONS & FAQ
         else:

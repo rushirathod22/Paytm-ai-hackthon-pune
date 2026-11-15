@@ -12,7 +12,8 @@ import {
   UserCheck,
   FileCheck,
   AlertTriangle,
-  ChevronRight
+  ChevronRight,
+  Sparkles
 } from 'lucide-react';
 import { opsApi } from '../services/api';
 import { SupportCase, CaseDetail } from '../types';

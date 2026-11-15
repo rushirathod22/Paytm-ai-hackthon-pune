@@ -87,6 +87,11 @@ class SettlementBatch(Base):
     fees = Column(Numeric(12, 2), nullable=False)
     refunds = Column(Numeric(12, 2), nullable=False)
     net = Column(Numeric(12, 2), nullable=False)
+    commission = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    tax = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    chargebacks = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    adjustments = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    utr = Column(String(100), nullable=True, default="UTR-PTM-20261114-4819")
     status = Column(String(50), nullable=False, default="SETTLED") # SETTLED, PENDING, PROCESSING
     source_type = Column(String(50), nullable=False, default="SYNTHETIC_DEMO")
     created_at = Column(DateTime(timezone=True), default=get_utc_now)
@@ -252,4 +257,89 @@ class AuditEvent(Base):
     resource = Column(String(100), nullable=False)
     trace_id = Column(String(100), nullable=False, index=True)
     details = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+class SettlementEvidence(Base):
+    __tablename__ = "settlement_evidence"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    merchant_id = Column(String(36), ForeignKey("merchants.id"), nullable=False, index=True)
+    settlement_batch_id = Column(String(36), ForeignKey("settlement_batches.id"), nullable=True, index=True)
+    investigation_id = Column(String(36), nullable=True, index=True)
+    evidence_type = Column(String(50), nullable=False) # TRANSACTION, SETTLEMENT_BATCH, BANK_STATEMENT, RECONCILIATION, TELEMETRY
+    source_type = Column(String(50), nullable=False, default="SYNTHETIC_DEMO") # PAYTM_STAGING, SYNTHETIC_DEMO, MERCHANT_REPORTED
+    reference_id = Column(String(100), nullable=True, index=True) # order_id, batch_ref, UTR
+    is_verified = Column(Boolean, nullable=False, default=True)
+    payload = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+class ReconciliationResultRecord(Base):
+    __tablename__ = "reconciliation_results"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    merchant_id = Column(String(36), ForeignKey("merchants.id"), nullable=False, index=True)
+    investigation_id = Column(String(36), nullable=True, index=True)
+    settlement_batch_id = Column(String(36), ForeignKey("settlement_batches.id"), nullable=True, index=True)
+    gross_payments = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    eligible_payments = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    refund_deductions = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    chargeback_deductions = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    commission_deductions = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    tax_deductions = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    other_adjustments = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    expected_net = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    actual_bank_credit = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    settlement_difference = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    reconciliation_status = Column(String(50), nullable=False, default="MATCHED") # MATCHED, PARTIALLY_MATCHED, AMOUNT_MISMATCH, SETTLEMENT_PENDING, BANK_CREDIT_UNCONFIRMED, INSUFFICIENT_EVIDENCE, REQUIRES_HUMAN_REVIEW
+    calculation_trace = Column(JSON, nullable=False, default=list)
+    source_provenance = Column(JSON, nullable=False, default=list)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+class InvestigationRun(Base):
+    __tablename__ = "investigation_runs"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    merchant_id = Column(String(36), ForeignKey("merchants.id"), nullable=False, index=True)
+    case_id = Column(String(36), ForeignKey("support_cases.id"), nullable=True, index=True)
+    complaint_category = Column(String(50), nullable=False) # MISSING_SETTLEMENT, PARTIAL_SETTLEMENT, DELAYED_SETTLEMENT, INCORRECT_AMOUNT, UNKNOWN_DEDUCTION
+    expected_amount = Column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    actual_credited_amount = Column(Numeric(12, 2), nullable=True)
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    transaction_id = Column(String(100), nullable=True)
+    settlement_id = Column(String(100), nullable=True)
+    utr_reference = Column(String(100), nullable=True)
+    complaint_description = Column(Text, nullable=True)
+    status = Column(String(50), nullable=False, default="COMPLETED") # COMPLETED, ESCALATED, WAITING_FOR_HUMAN, RESOLVED
+    summary_explanation = Column(Text, nullable=False)
+    evidence_summary = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+
+class MonitoringAlert(Base):
+    __tablename__ = "monitoring_alerts"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    merchant_id = Column(String(36), ForeignKey("merchants.id"), nullable=False, index=True)
+    alert_type = Column(String(50), nullable=False) # SETTLEMENT_DELAY, SETTLEMENT_MISMATCH, DEVICE_CONNECTIVITY, UNUSUAL_REFUND
+    severity = Column(String(20), nullable=False, default="MEDIUM") # LOW, MEDIUM, HIGH, CRITICAL
+    title = Column(String(200), nullable=False)
+    description = Column(Text, nullable=False)
+    evidence = Column(JSON, nullable=False, default=dict)
+    recommended_action = Column(String(255), nullable=True)
+    status = Column(String(50), nullable=False, default="ACTIVE") # ACTIVE, ACKNOWLEDGED, RESOLVED
+    detected_at = Column(DateTime(timezone=True), default=get_utc_now)
+    created_at = Column(DateTime(timezone=True), default=get_utc_now)
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    merchant_id = Column(String(36), ForeignKey("merchants.id"), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=True)
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=False)
+    category = Column(String(50), nullable=False, default="INVESTIGATION") # INVESTIGATION, APPROVAL, SETTLEMENT, ALERT, CASE
+    reference_id = Column(String(100), nullable=True)
+    is_read = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), default=get_utc_now)

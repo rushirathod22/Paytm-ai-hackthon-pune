@@ -89,3 +89,50 @@ export interface ChatMessage {
   evidence?: any;
   case?: any;
 }
+
+export interface InvestigationReport {
+  investigation_id: string;
+  merchant_id: string;
+  merchant_name: string;
+  complaint_category: string;
+  status: string;
+  case_id?: string;
+  case_number?: string;
+  reconciliation: {
+    is_reconciled: boolean;
+    status: string;
+    gross_payments: string;
+    eligible_payments: string;
+    refund_deductions: string;
+    chargeback_deductions: string;
+    commission_deductions: string;
+    tax_deductions: string;
+    other_adjustments: string;
+    expected_net: string;
+    observed_settlement: string;
+    actual_bank_credit: string;
+    discrepancy_amount: string;
+    settlement_difference: string;
+    missing_orders: string[];
+    calculation_trace: string[];
+    explanation: string;
+  };
+  evidence_records: {
+    evidence_type: string;
+    source_type: string;
+    reference_id: string;
+    description: string;
+    timestamp: string;
+    verification_status: string;
+    details: Record<string, any>;
+  }[];
+  timeline: {
+    stage: string;
+    timestamp: string;
+    status: string;
+    details: string;
+  }[];
+  ai_explanation: string;
+  next_permitted_action: string;
+  created_at: string;
+}

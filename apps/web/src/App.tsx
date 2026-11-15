@@ -4,6 +4,7 @@ import { MerchantDashboard } from './pages/MerchantDashboard';
 import { ChatWorkspace } from './pages/ChatWorkspace';
 import { CallingPage } from './pages/CallingPage';
 import { OperationsConsole } from './pages/OperationsConsole';
+import { SettlementInvestigationPage } from './pages/SettlementInvestigationPage';
 import { ResolutionCallbackModal, CallbackEvent } from './components/ResolutionCallbackModal';
 import { opsApi } from './services/api';
 import { UserRole } from './types';
@@ -11,7 +12,7 @@ import { ShieldCheck, Heart } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [currentRole, setCurrentRole] = useState<UserRole>('MERCHANT');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'calling' | 'console'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'calling' | 'console' | 'investigation'>('dashboard');
   const [isResetting, setIsResetting] = useState(false);
   const [chatInitialQuery, setChatInitialQuery] = useState<string>('');
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
@@ -71,8 +72,8 @@ export const App: React.FC = () => {
     setActiveTab('chat');
   };
 
-  const handleSelectCase = (caseId: string) => {
-    setSelectedCaseId(caseId);
+  const handleSelectCase = (caseId?: string) => {
+    if (caseId) setSelectedCaseId(caseId);
     setActiveTab('console');
   };
 
@@ -97,6 +98,15 @@ export const App: React.FC = () => {
           <MerchantDashboard
             onOpenChatWithQuery={handleOpenChatWithQuery}
             onOpenConsole={() => setActiveTab('console')}
+            onOpenInvestigation={() => setActiveTab('investigation')}
+          />
+        )}
+
+        {/* Settlement Investigation & Evidence Centre */}
+        {activeTab === 'investigation' && (
+          <SettlementInvestigationPage
+            onOpenConsole={handleSelectCase}
+            onOpenChatWithQuery={handleOpenChatWithQuery}
           />
         )}
 

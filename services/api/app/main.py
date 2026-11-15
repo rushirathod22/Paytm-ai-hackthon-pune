@@ -16,6 +16,9 @@ from services.api.app.api.v1.voice import router as voice_router
 from services.api.app.api.v1.cases import router as cases_router
 from services.api.app.api.v1.webhooks import router as webhooks_router
 from services.api.app.api.v1.health import router as health_router
+from services.api.app.api.v1.investigations import router as investigations_router
+from services.api.app.api.v1.alerts import router as alerts_router
+from services.api.app.api.v1.notifications import router as notifications_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("opssaathi")
@@ -84,6 +87,9 @@ app.include_router(settlements_router, prefix=api_v1_prefix)
 app.include_router(agent_router, prefix=api_v1_prefix)
 app.include_router(voice_router, prefix=api_v1_prefix)
 app.include_router(cases_router, prefix=api_v1_prefix)
+app.include_router(investigations_router, prefix=api_v1_prefix)
+app.include_router(alerts_router, prefix=api_v1_prefix)
+app.include_router(notifications_router, prefix=api_v1_prefix)
 app.include_router(webhooks_router, prefix=api_v1_prefix)
 app.include_router(health_router, prefix=api_v1_prefix)
 

@@ -7,7 +7,8 @@ import {
   FileCheck2,
   Check,
   PhoneCall,
-  Sparkles
+  Sparkles,
+  Calculator
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -16,8 +17,8 @@ interface NavbarProps {
   onRoleChange: (role: UserRole) => void;
   onResetDemo: () => void;
   isResetting: boolean;
-  activeTab: 'dashboard' | 'chat' | 'calling' | 'console';
-  onTabChange: (tab: 'dashboard' | 'chat' | 'calling' | 'console') => void;
+  activeTab: 'dashboard' | 'chat' | 'calling' | 'console' | 'investigation';
+  onTabChange: (tab: 'dashboard' | 'chat' | 'calling' | 'console' | 'investigation') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -95,6 +96,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               Merchant Workspace
+            </button>
+
+            {/* Investigation Centre Link */}
+            <button
+              onClick={() => onTabChange('investigation')}
+              className={`px-3.5 py-2 rounded-full transition-all whitespace-nowrap text-xs lg:text-sm font-semibold flex items-center space-x-1.5 ${
+                activeTab === 'investigation'
+                  ? 'text-[#002970] bg-[#E8F8FE]'
+                  : 'hover:text-[#002970] hover:bg-slate-50'
+              }`}
+            >
+              <Calculator className="w-4 h-4 text-[#00BAF2]" />
+              <span>Settlement Investigation</span>
             </button>
 
             <button

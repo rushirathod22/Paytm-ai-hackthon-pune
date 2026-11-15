@@ -24,11 +24,13 @@ import { Transaction, SettlementBatch, SupportCase } from '../types';
 interface MerchantDashboardProps {
   onOpenChatWithQuery: (query: string) => void;
   onOpenConsole: () => void;
+  onOpenInvestigation?: () => void;
 }
 
 export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
   onOpenChatWithQuery,
   onOpenConsole,
+  onOpenInvestigation,
 }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [settlements, setSettlements] = useState<SettlementBatch[]>([]);
@@ -92,15 +94,19 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
 
         <div className="flex items-center space-x-3">
           <button
-            onClick={() =>
-              onOpenChatWithQuery(
-                'My ₹6,000 payment for Order #ORD-8821 is missing from today\'s settlement batch.'
-              )
-            }
+            onClick={() => {
+              if (onOpenInvestigation) {
+                onOpenInvestigation();
+              } else {
+                onOpenChatWithQuery(
+                  'My ₹6,000 payment for Order #ORD-8821 is missing from today\'s settlement batch.'
+                );
+              }
+            }}
             className="bg-[#00BAF2] hover:bg-[#00a3d4] text-[#002970] font-bold px-5 py-2.5 rounded-full text-xs sm:text-sm flex items-center space-x-2 shadow-sm transition-all"
           >
             <Bot className="w-4 h-4 text-[#002970]" />
-            <span>Investigate Discrepancy</span>
+            <span>Investigate Settlement</span>
           </button>
         </div>
       </div>
@@ -151,11 +157,15 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
 
             {/* Service 3: Discrepancy Highlight */}
             <div
-              onClick={() =>
-                onOpenChatWithQuery(
-                  'Investigate the ₹6,000 discrepancy between captured payments and settlement batch.'
-                )
-              }
+              onClick={() => {
+                if (onOpenInvestigation) {
+                  onOpenInvestigation();
+                } else {
+                  onOpenChatWithQuery(
+                    'Investigate the ₹6,000 discrepancy between captured payments and settlement batch.'
+                  );
+                }
+              }}
               className="group p-3 rounded-2xl hover:bg-amber-50 transition-all cursor-pointer flex flex-col items-center"
             >
               <div className="w-12 h-12 rounded-2xl bg-amber-100 group-hover:bg-amber-500 flex items-center justify-center text-amber-800 group-hover:text-white transition-all shadow-xs mb-2">

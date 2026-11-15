@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -425,3 +425,54 @@ async def verify_case(
                 "message": ver_res.reason
             }
         }
+
+class CaseEvidenceUploadRequest(BaseModel):
+    evidence_type: str = "BANK_STATEMENT"
+    reference_id: Optional[str] = None
+    description: Optional[str] = "Merchant provided bank statement snapshot"
+    payload: Dict[str, Any] = Field(default_factory=dict)
+
+@router.post("/{id}/evidence")
+async def add_case_evidence(
+    id: str,
+    req: CaseEvidenceUploadRequest,
+    current_user: User = Depends(get_current_user),
+    scoped_merchant_id: str = Depends(get_current_merchant_scope),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(SupportCase).filter(SupportCase.id == id)
+    if current_user.role == "MERCHANT":
+        stmt = stmt.filter(SupportCase.merchant_id == scoped_merchant_id)
+
+    res = await db.execute(stmt)
+    case = res.scalars().first()
+    if not case:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Case not found")
+
+    event = CaseEvent(
+        case_id=case.id,
+        actor=current_user.name,
+        event_type="NOTE_ADDED",
+        from_status=case.status,
+        to_status=case.status,
+        visibility="MERCHANT_VISIBLE",
+        payload={
+            "evidence_type": req.evidence_type,
+            "reference_id": req.reference_id,
+            "description": req.description,
+            "evidence_data": req.payload
+        }
+    )
+    db.add(event)
+    await db.commit()
+
+    return {
+        "ok": True,
+        "data": {
+            "case_id": case.id,
+            "evidence_type": req.evidence_type,
+            "message": "Evidence successfully attached to case timeline."
+        },
+        "meta": {"source_type": "MERCHANT_REPORTED"},
+        "error": None
+    }

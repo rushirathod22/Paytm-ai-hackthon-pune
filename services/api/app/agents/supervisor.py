@@ -222,7 +222,7 @@ class AgentSupervisor:
                 "source_provenance": ["PAYTM_STAGING", "SYNTHETIC_DEMO"]
             }
 
-            if recon_result.status == "DISCREPANCY_DETECTED":
+            if recon_result.discrepancy_amount > Decimal("0.00") or recon_result.status in ["DISCREPANCY_DETECTED", "PARTIALLY_MATCHED", "AMOUNT_MISMATCH"]:
                 idempotency_key = f"case-mismatch-{merchant_id}-{order_id or 'all'}"
                 active_case = await AgentTools.create_support_case(
                     db=db,

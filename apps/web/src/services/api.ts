@@ -74,6 +74,43 @@ export const opsApi = {
   // Merchant Data
   getTransactions: () => apiRequest('/transactions'),
   getSettlements: () => apiRequest('/settlements'),
+  getSettlementDetail: (id: string) => apiRequest(`/settlements/${id}`),
+  getSettlementEvidence: (id: string) => apiRequest(`/settlements/${id}/evidence`),
+  getSettlementReconciliation: (id: string) => apiRequest(`/settlements/${id}/reconciliation`),
+
+  // Settlement Investigation & Evidence Centre
+  investigateSettlement: (payload: {
+    complaint_category: string;
+    expected_amount?: number | string;
+    actual_credited_amount?: number | string;
+    start_date?: string;
+    end_date?: string;
+    transaction_id?: string;
+    settlement_id?: string;
+    utr_reference?: string;
+    complaint_description?: string;
+  }) =>
+    apiRequest('/settlements/investigate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  getInvestigation: (id: string) => apiRequest(`/investigations/${id}`),
+  getInvestigationTimeline: (id: string) => apiRequest(`/investigations/${id}/timeline`),
+  escalateInvestigation: (id: string, notes?: string, priority: string = 'HIGH') =>
+    apiRequest(`/investigations/${id}/escalate`, {
+      method: 'POST',
+      body: JSON.stringify({ notes, priority }),
+    }),
+  addCaseEvidence: (caseId: string, evidence: {
+    evidence_type: string;
+    reference_id?: string;
+    description?: string;
+    payload?: any;
+  }) =>
+    apiRequest(`/cases/${caseId}/evidence`, {
+      method: 'POST',
+      body: JSON.stringify(evidence),
+    }),
 
   // Agent Chat & Voice
   sendMessage: (message: string, conversation_id?: string, channel: string = 'CHAT') =>

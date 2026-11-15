@@ -33,15 +33,17 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ initialQuery, onVi
         'Namaste! I am OpsSaathi AI, your autonomous merchant operations teammate. I investigate missing payments, calculate settlement discrepancies using verified Decimal arithmetic, and coordinate with human supervisors. How can I assist you?',
     },
   ]);
-  const [input, setInput] = useState(initialQuery || '');
+  const [input, setInput] = useState('');
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sentInitialQueryRef = useRef<string | null>(null);
+  const isSubmittingRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (initialQuery && sentInitialQueryRef.current !== initialQuery) {
       sentInitialQueryRef.current = initialQuery;
+      setInput('');
       sendMessage(initialQuery);
     }
   }, [initialQuery]);
@@ -52,7 +54,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ initialQuery, onVi
 
   const sendMessage = async (textToSend: string) => {
     const trimmed = textToSend.trim();
-    if (!trimmed || isLoading) return;
+    if (!trimmed || isLoading || isSubmittingRef.current) return;
+
+    isSubmittingRef.current = true;
+    setInput('');
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -60,8 +65,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ initialQuery, onVi
       content: trimmed,
     };
 
-    setMessages((prev) => [...prev, userMsg]);
-    setInput('');
+    setMessages((prev) => {
+      if (prev.length > 0 && prev[prev.length - 1].role === 'USER' && prev[prev.length - 1].content === trimmed) {
+        return prev;
+      }
+      return [...prev, userMsg];
+    });
     setIsLoading(true);
 
     try {
@@ -93,6 +102,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ initialQuery, onVi
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
